@@ -4,17 +4,37 @@ require 'securerandom'
 require 'base64'
 require 'ostruct'
 
-class Array
-  def secure_sample
-    sample(random: Random.new(SecureRandom.random_bytes(4).unpack("N")[0]))
-  end
-end
 
 module Diceudiceu
   DEFAULT_WORDLIST = Zlib::Inflate.inflate(Base64.decode64 DATA.readlines.join).split("\n")
   DEFAULT_SETTINGS = {
-    size: 6
+    size: 6,
+    symbols: false,
+    numbers: false,
   }
+  COLORS = %w[black red green yellow blue magenta cyan white].map.with_index {|color, index| [color, index]}.to_h
+
+  module BarrelOfMonkeys
+    refine Array do
+      def secure_sample
+        sample(random: Random.new(SecureRandom.random_bytes(4).unpack("N")[0]))
+      end
+    end
+
+    refine String do
+      COLORS.compact.each do |name, num|
+        define_method(name) do
+          "\e[3#{num}m#{self}\e[0m"
+        end
+      end
+
+      def bold
+        "\e[1m#{self}\e[0m"
+      end
+    end
+  end
+
+  using BarrelOfMonkeys
   
   module ClassMethods
     def cli_exe
@@ -23,14 +43,50 @@ module Diceudiceu
 
     def parsed_args
       @args ||= OpenStruct.new(DEFAULT_SETTINGS.merge(
-        size: ARGV.find{|arg| arg[/\d+/]}
+        size: ARGV.find{|arg| arg[/^\d+$/]},
+        symbols: ARGV.find{|arg| arg[/^sym/]},
+        numbers: ARGV.find{|arg| arg[/^num/]},
       ) {|k,o,n| n || o} )
     end
 
     def mk_password
+      inject_numbers = -> (str) do
+        return str unless parsed_args.numbers
+        chance = 0.3
+        str.split('')
+          .map do |letter|
+            next letter unless letter.downcase[/[aeio]/]
+            next letter unless rand < chance
+            {
+              'a' => 4,
+              'e' => 3,
+              'i' => 1,
+              'o' => 0,
+            }[letter.downcase]
+          end
+          .join
+          # .then {|word| rand < chance ? word+rand(1..99).to_s : word}
+      end
+
+      inject_specials = -> (str) do
+        return str unless parsed_args.symbols
+        symbols = %{!@#$%^&*()_+<>?:;"'~`}
+        chance = 0.3
+        return str if rand > chance
+
+        str + symbols.split('').secure_sample
+      end
+
       (0..parsed_args.size)
         .map{ DEFAULT_WORDLIST.secure_sample }
         .map(&:capitalize)
+        .map(&inject_numbers)
+        .map(&inject_specials)
+        .map{|word| word.split('')}
+        .flatten
+        .map{|letter| letter[/\d/] ? letter.green : letter}
+        .map{|letter| letter[/[A-Z]/] ? letter.bold : letter}
+        .map{|letter| letter[/[a-z0-9]/i] ? letter : letter.blue }
         .join
     end
   end
