@@ -12,18 +12,26 @@ end
 
 module Diceudiceu
   DEFAULT_WORDLIST = Zlib::Inflate.inflate(Base64.decode64 DATA.readlines.join).split("\n")
+  DEFAULT_SETTINGS = {
+    size: 6
+  }
+  
   module ClassMethods
     def cli_exe
-      pp parsed_args
-      puts (0..parsed_args.size).map{ DEFAULT_WORDLIST.secure_sample }
-                 .map(&:capitalize)
-                 .join
+      puts mk_password
     end
 
     def parsed_args
-      @args ||= OpenStruct.new(
-        size: ARGV.find{|arg| arg[/\d+/]} || 6
-      ) 
+      @args ||= OpenStruct.new(DEFAULT_SETTINGS.merge(
+        size: ARGV.find{|arg| arg[/\d+/]}
+      ) {|k,o,n| n || o} )
+    end
+
+    def mk_password
+      (0..parsed_args.size)
+        .map{ DEFAULT_WORDLIST.secure_sample }
+        .map(&:capitalize)
+        .join
     end
   end
 
