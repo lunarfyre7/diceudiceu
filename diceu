@@ -43,7 +43,7 @@ module Diceudiceu
 
     def parsed_args
       @args ||= OpenStruct.new(DEFAULT_SETTINGS.merge(
-        size: ARGV.find{|arg| arg[/^\d+$/]},
+        size: ARGV.find{|arg| arg[/^\d+$/]}.then{|num| num.nil? ? nil : num.to_i},
         symbols: ARGV.find{|arg| arg[/^sym/]},
         numbers: ARGV.find{|arg| arg[/^num/]},
       ) {|k,o,n| n || o} )
