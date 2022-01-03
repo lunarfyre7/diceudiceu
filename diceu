@@ -22,7 +22,7 @@ module Diceudiceu
 
     def parsed_args
       @args ||= OpenStruct.new(
-        size: ARGV.find{_1[/\d+/]} || 6
+        size: ARGV.find{|arg| arg[/\d+/]} || 6
       ) 
     end
   end
