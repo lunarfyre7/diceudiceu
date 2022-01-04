@@ -77,7 +77,7 @@ module Diceudiceu
         str + symbols.split('').secure_sample
       end
 
-      (0..parsed_args.size)
+      (0...parsed_args.size)
         .map{ DEFAULT_WORDLIST.secure_sample }
         .map(&:capitalize)
         .map(&inject_numbers)
