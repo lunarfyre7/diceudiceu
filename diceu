@@ -4,12 +4,13 @@ require 'securerandom'
 require 'base64'
 require 'ostruct'
 
-
+srand SecureRandom.random_bytes(4).unpack("N")[0]
 module Diceudiceu
   DEFAULT_WORDLIST = Zlib::Inflate.inflate(Base64.decode64 DATA.readlines.join).split("\n")
   DEFAULT_SETTINGS = {
     size: 6,
     symbols: false,
+    leet: false,
     numbers: false,
   }
   COLORS = %w[black red green yellow blue magenta cyan white].map.with_index {|color, index| [color, index]}.to_h
@@ -35,7 +36,7 @@ module Diceudiceu
   end
 
   using BarrelOfMonkeys
-  
+
   module ClassMethods
     def cli_exe
       puts mk_password
@@ -46,12 +47,13 @@ module Diceudiceu
         size: ARGV.find{|arg| arg[/^\d+$/]}.then{|num| num.nil? ? nil : num.to_i},
         symbols: ARGV.find{|arg| arg[/^sym/]},
         numbers: ARGV.find{|arg| arg[/^num/]},
+        leet: ARGV.find{ |arg| arg[/^leet/] }
       ) {|k,o,n| n || o} )
     end
 
     def mk_password
       inject_numbers = -> (str) do
-        return str unless parsed_args.numbers
+        return str unless parsed_args.leet
         chance = 0.3
         str.split('')
           .map do |letter|
@@ -62,7 +64,7 @@ module Diceudiceu
               'e' => 3,
               'i' => 1,
               'o' => 0,
-            }[letter.downcase]
+            }[letter.downcase].to_s.green
           end
           .join
           # .then {|word| rand < chance ? word+rand(1..99).to_s : word}
@@ -74,7 +76,7 @@ module Diceudiceu
         chance = 0.3
         return str if rand > chance
 
-        str + symbols.split('').secure_sample
+        str + symbols.split('').secure_sample.blue
       end
 
       (0...parsed_args.size)
@@ -82,11 +84,15 @@ module Diceudiceu
         .map(&:capitalize)
         .map(&inject_numbers)
         .map(&inject_specials)
+        .tap{ |words|
+          next unless parsed_args.numbers
+
+          3.times {words << rand(0..9).to_s.yellow}
+        }
+        .shuffle
         .map{|word| word.split('')}
         .flatten
-        .map{|letter| letter[/\d/] ? letter.green : letter}
         .map{|letter| letter[/[A-Z]/] ? letter.bold : letter}
-        .map{|letter| letter[/[a-z0-9]/i] ? letter : letter.blue }
         .join
     end
   end
