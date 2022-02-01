@@ -7,6 +7,7 @@ puts DATA.each_line
          .join("\n")
          .then{Zlib::Deflate.deflate(_1, 9)}
          .then{Base64.encode64 _1}
+         .gsub("\n",'')
 
 __END__
 11111	abacus
