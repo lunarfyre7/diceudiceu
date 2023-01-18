@@ -1,7 +1,6 @@
 require 'zlib'
 require 'base64'
 
-z = Zlib::Deflate.new(9)
 puts DATA.each_line
          .map{_1.split(' ').last}
          .join("\n")
