@@ -1,5 +1,5 @@
 #! /usr/bin/env ruby
-require 'zlib'
+require 'zlib' unless RUBY_ENGINE == 'opal'
 require 'securerandom'
 require 'base64'
 require 'ostruct'
@@ -8,10 +8,13 @@ srand SecureRandom.random_bytes(4).unpack("N")[0]
 module Diceudiceu
   class << self
     attr_accessor :compressed_list
+    attr_writer :default_wordlist
     def default_wordlist
+      @default_wordlist unless compressed_list
       @default_wordlist ||= Zlib::Inflate.inflate(
         Base64.decode64 compressed_list
       ).split("\n")
+      
     end
   end
 
